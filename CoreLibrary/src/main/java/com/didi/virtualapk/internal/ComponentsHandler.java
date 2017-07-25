@@ -54,6 +54,7 @@ public class ComponentsHandler {
     }
 
     /**
+     * 插件的隐式转换成显式
      * transform intent from implicit to explicit
      */
     public Intent transformIntentToExplicitAsNeeded(Intent intent) {
@@ -69,6 +70,10 @@ public class ComponentsHandler {
         return intent;
     }
 
+    /**
+     * two use: 1 is for PendingIntent Activity, 2 is for normal Activity
+     * same function like: ActivityManagerProxy.java--wrapperTargetIntent()
+     */
     public void markIntentIfNeeded(Intent intent) {
         if (intent.getComponent() == null) {
             return;
@@ -78,6 +83,7 @@ public class ComponentsHandler {
         String targetClassName = intent.getComponent().getClassName();
         // search map and return specific launchmode stub activity
         if (!targetPackageName.equals(mContext.getPackageName()) && mPluginManager.getLoadedPlugin(targetPackageName) != null) {
+            // 供VAInstrumentation使用
             intent.putExtra(Constants.KEY_IS_PLUGIN, true);
             intent.putExtra(Constants.KEY_TARGET_PACKAGE, targetPackageName);
             intent.putExtra(Constants.KEY_TARGET_ACTIVITY, targetClassName);
@@ -94,6 +100,7 @@ public class ComponentsHandler {
             throw new RuntimeException("can not find " + component);
         }
         int launchMode = info.launchMode;
+        // theme
         Resources.Theme themeObj = loadedPlugin.getResources().newTheme();
         themeObj.applyStyle(info.theme, true);
         String stubActivity = mStubActivityInfo.getStubActivity(targetClassName, launchMode, themeObj);
@@ -102,6 +109,9 @@ public class ComponentsHandler {
     }
 
 
+    /**
+     * only use for getAndIncrement which I thought it's a bug(should use getAndDecrement)
+     */
     public AtomicInteger getServiceCounter(Service service) {
         return this.mServiceCounters.get(service);
     }

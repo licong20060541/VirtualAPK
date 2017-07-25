@@ -40,6 +40,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 
 /**
+ * 技术：动态代理
+ * 1 handle service life
+ * 2 handle PendingIntent(Service and Activity)
+ * 3 other(overridePendingTransition)
  * @author johnsonlee
  */
 public class ActivityManagerProxy implements InvocationHandler {
@@ -51,6 +55,7 @@ public class ActivityManagerProxy implements InvocationHandler {
     public static final int INTENT_SENDER_ACTIVITY_RESULT = 3;
     public static final int INTENT_SENDER_SERVICE = 4;
 
+    // 动态代理
     public static IActivityManager newInstance(PluginManager pluginManager, IActivityManager activityManager) {
         return (IActivityManager) Proxy.newProxyInstance(activityManager.getClass().getClassLoader(), new Class[] { IActivityManager.class }, new ActivityManagerProxy(pluginManager, activityManager));
     }
@@ -67,7 +72,7 @@ public class ActivityManagerProxy implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if ("startService".equals(method.getName())) {
             try {
-                return startService(proxy, method, args);
+                return startService(proxy, method, args); // 直接返回，代理的大多是服务
             } catch (Throwable e) {
                 Log.e(TAG, "Start service error", e);
             }
@@ -97,13 +102,13 @@ public class ActivityManagerProxy implements InvocationHandler {
             }
         } else if ("getIntentSender".equals(method.getName())) {
             try {
-                getIntentSender(method, args);
+                getIntentSender(method, args); // do not return: for PendingIntent
             } catch (Exception e) {
                 e.printStackTrace();
             }
         } else if ("overridePendingTransition".equals(method.getName())){
             try {
-                overridePendingTransition(method, args);
+                overridePendingTransition(method, args); // do not return
             } catch (Exception e){
                 e.printStackTrace();
             }
@@ -137,13 +142,16 @@ public class ActivityManagerProxy implements InvocationHandler {
 
     private Object startService(Object proxy, Method method, Object[] args) throws Throwable {
         IApplicationThread appThread = (IApplicationThread) args[0];
+        // 1 find intent
         Intent target = (Intent) args[1];
+        // 2 find plugin ResolveInfo
         ResolveInfo resolveInfo = this.mPluginManager.resolveService(target, 0);
         if (null == resolveInfo || null == resolveInfo.serviceInfo) {
-            // is host service
+            // 3 is host service
             return method.invoke(this.mActivityManager, args);
         }
 
+        // 4 is plugin service
         return startDelegateServiceForTarget(target, resolveInfo.serviceInfo, null, RemoteService.EXTRA_COMMAND_START_SERVICE);
     }
 
@@ -181,7 +189,7 @@ public class ActivityManagerProxy implements InvocationHandler {
         }
 
         Bundle bundle = new Bundle();
-        PluginUtil.putBinder(bundle, "sc", (IBinder) args[4]);
+        PluginUtil.putBinder(bundle, "sc", (IBinder) args[4]); // 额外的参数(倒数第二个)
         startDelegateServiceForTarget(target, resolveInfo.serviceInfo, bundle, RemoteService.EXTRA_COMMAND_BIND_SERVICE);
         mPluginManager.getComponentsHandler().remberIServiceConnection((IBinder) args[4], target);
         return 1;
@@ -201,38 +209,49 @@ public class ActivityManagerProxy implements InvocationHandler {
     }
 
     private ComponentName startDelegateServiceForTarget(Intent target, ServiceInfo serviceInfo, Bundle extras, int command) {
+        // 1 利用代理服务包装插件服务
         Intent wrapperIntent = wrapperTargetIntent(target, serviceInfo, extras, command);
+        // 2 启动代理服务
         return mPluginManager.getHostContext().startService(wrapperIntent);
     }
 
+    /**
+     * two use: 1 is for normal service, 2 is for PendingIntent service
+     * same function like: ComponentsHandler.java--markIntentIfNeeded()
+     */
     private Intent wrapperTargetIntent(Intent target, ServiceInfo serviceInfo, Bundle extras, int command) {
         // fill in service with ComponentName
-        target.setComponent(new ComponentName(serviceInfo.packageName, serviceInfo.name));
+        target.setComponent(new ComponentName(serviceInfo.packageName, serviceInfo.name)); // plugin
         String pluginLocation = mPluginManager.getLoadedPlugin(target.getComponent()).getLocation();
 
         // start delegate service to run plugin service inside
         boolean local = PluginUtil.isLocalService(serviceInfo);
         Class<? extends Service> delegate = local ? LocalService.class : RemoteService.class;
         Intent intent = new Intent();
-        intent.setClass(mPluginManager.getHostContext(), delegate);
-        intent.putExtra(RemoteService.EXTRA_TARGET, target);
-        intent.putExtra(RemoteService.EXTRA_COMMAND, command);
-        intent.putExtra(RemoteService.EXTRA_PLUGIN_LOCATION, pluginLocation);
-        if (extras != null) {
+        intent.setClass(mPluginManager.getHostContext(), delegate); // 设置代理服务
+        intent.putExtra(RemoteService.EXTRA_TARGET, target); // 设置代理服务的参数：目标intent
+        intent.putExtra(RemoteService.EXTRA_COMMAND, command); // 目标操作
+        intent.putExtra(RemoteService.EXTRA_PLUGIN_LOCATION, pluginLocation); // 目标service的路径
+        if (extras != null) { // bind时的额外参数
             intent.putExtras(extras);
         }
 
         return intent;
     }
 
+    /**
+     * for PendingIntent
+     */
     private void getIntentSender(Method method, Object[] args) {
         String hostPackageName = mPluginManager.getHostContext().getPackageName();
-        args[1] = hostPackageName;
+        args[1] = hostPackageName; // 设置包名为宿主的
 
         Intent target = ((Intent[]) args[5])[0];
         int intentSenderType = (int)args[0];
         if (intentSenderType == INTENT_SENDER_ACTIVITY) {
+            // intent.setComponent(component) 显式intent
             mPluginManager.getComponentsHandler().transformIntentToExplicitAsNeeded(target);
+            // 设置为代理的Activity
             mPluginManager.getComponentsHandler().markIntentIfNeeded(target);
         } else if (intentSenderType == INTENT_SENDER_SERVICE) {
             ResolveInfo resolveInfo = this.mPluginManager.resolveService(target, 0);
@@ -248,7 +267,7 @@ public class ActivityManagerProxy implements InvocationHandler {
 
     private void overridePendingTransition(Method method, Object[] args) {
         String hostPackageName = mPluginManager.getHostContext().getPackageName();
-        args[1] = hostPackageName;
+        args[1] = hostPackageName; // 设置包名为宿主的
     }
 
 }
