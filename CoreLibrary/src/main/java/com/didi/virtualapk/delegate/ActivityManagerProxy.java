@@ -189,7 +189,9 @@ public class ActivityManagerProxy implements InvocationHandler {
         }
 
         Bundle bundle = new Bundle();
-        PluginUtil.putBinder(bundle, "sc", (IBinder) args[4]); // 额外的参数(倒数第二个)
+        // LocalService--line152会使用的---sc is (IBinder serviceConnection)
+        // args[4]的值是由ContextImpl设置的bindServiceCommon()
+        PluginUtil.putBinder(bundle, "sc", (IBinder) args[4]); // 供插件使用的
         startDelegateServiceForTarget(target, resolveInfo.serviceInfo, bundle, RemoteService.EXTRA_COMMAND_BIND_SERVICE);
         mPluginManager.getComponentsHandler().remberIServiceConnection((IBinder) args[4], target);
         return 1;

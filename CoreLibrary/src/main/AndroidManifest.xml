@@ -47,12 +47,14 @@
         <service android:name="com.didi.virtualapk.delegate.LocalService" />
 
         <!-- Daemon Service running in child process -->
+        <!--android:process=":daemon"-->
         <service android:name="com.didi.virtualapk.delegate.RemoteService" android:process=":daemon">
             <intent-filter>
                 <action android:name="${applicationId}.intent.ACTION_DAEMON_SERVICE" />
             </intent-filter>
         </service>
 
+        <!--android:process=":daemon"-->
         <provider
             android:name="com.didi.virtualapk.delegate.RemoteContentProvider"
             android:authorities="${applicationId}.VirtualAPK.Provider"

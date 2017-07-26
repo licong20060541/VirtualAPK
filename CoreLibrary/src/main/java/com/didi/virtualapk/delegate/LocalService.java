@@ -86,21 +86,32 @@ public class LocalService extends Service {
         switch (command) {
             case EXTRA_COMMAND_START_SERVICE: {
                 ActivityThread mainThread = (ActivityThread)ReflectUtil.getActivityThread(getBaseContext());
+                // 1 获取IApplicationThread(客户端的服务，AMS端有其代理)
                 IApplicationThread appThread = mainThread.getApplicationThread();
                 Service service;
 
                 if (this.mPluginManager.getComponentsHandler().isServiceAvailable(component)) {
+                    // 2 已经启动过了，则获取即可
                     service = this.mPluginManager.getComponentsHandler().getService(component);
                 } else {
                     try {
+                        // 3 否则加载类--调用生命周期函数
                         service = (Service) plugin.getClassLoader().loadClass(component.getClassName()).newInstance();
 
                         Application app = plugin.getApplication();
-                        IBinder token = appThread.asBinder();
-                        Method attach = service.getClass().getMethod("attach", Context.class, ActivityThread.class, String.class, IBinder.class, Application.class, Object.class);
+                        IBinder token = appThread.asBinder(); // 4 (in source code)return this
+                        Method attach = service.getClass().getMethod("attach", Context.class,
+                                ActivityThread.class, String.class, IBinder.class,
+                                Application.class, Object.class);
                         IActivityManager am = mPluginManager.getActivityManager();
 
-                        attach.invoke(service, plugin.getPluginContext(), mainThread, component.getClassName(), token, app, am);
+                        // 5 参数mainThread和token是宿主的，其余都是插件或做了手脚的！！！
+                        // attach方法，why call this, in ActivityThread--(handleCreateService)
+                        //     a. service.attach(context, this, data.info.name, data.token, app,
+                        //           ActivityManagerNative.getDefault());
+                        //     b. service.onCreate();
+                        attach.invoke(service, plugin.getPluginContext(), mainThread,
+                                component.getClassName(), token, app, am);
                         service.onCreate();
                         this.mPluginManager.getComponentsHandler().rememberService(component, service);
                     } catch (Throwable t) {
@@ -108,6 +119,7 @@ public class LocalService extends Service {
                     }
                 }
 
+                // 6 call this every time
                 service.onStartCommand(target, 0, this.mPluginManager.getComponentsHandler().getServiceCounter(service).getAndIncrement());
                 break;
             }
@@ -135,9 +147,13 @@ public class LocalService extends Service {
                     }
                 }
                 try {
+                    // diff with start service
                     IBinder binder = service.onBind(target);
+                    // 由ActivityManagerProxy设置的参数
                     IBinder serviceConnection = PluginUtil.getBinder(intent.getExtras(), "sc");
+                    // 将IBinder转换为业务接口
                     IServiceConnection iServiceConnection = IServiceConnection.Stub.asInterface(serviceConnection);
+                    // bind服务时的回调在这里触发
                     iServiceConnection.connected(component, binder);
                 } catch (Exception e) {
                     e.printStackTrace();

@@ -32,7 +32,7 @@ public class RemoteService extends LocalService {
 
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return null; // reason?
     }
 
     @Override
@@ -46,6 +46,7 @@ public class RemoteService extends LocalService {
             String pluginLocation = intent.getStringExtra(EXTRA_PLUGIN_LOCATION);
             ComponentName component = target.getComponent();
             LoadedPlugin plugin = PluginManager.getInstance(this).getLoadedPlugin(component);
+            // 远程服务只是提前判断去加载插件，其余逻辑同LocalService
             if (plugin == null && pluginLocation != null) {
                 try {
                     PluginManager.getInstance(this).loadPlugin(new File(pluginLocation));
