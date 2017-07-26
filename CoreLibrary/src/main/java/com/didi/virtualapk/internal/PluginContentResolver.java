@@ -28,7 +28,10 @@ import com.didi.virtualapk.delegate.RemoteContentProvider;
 
 import java.lang.reflect.Method;
 
-/**
+/**PluginContext:
+ * public ContentResolver getContentResolver() {
+        return new PluginContentResolver(getHostContext());
+    }
  * Created by renyugang on 16/12/7.
  */
 
@@ -64,6 +67,7 @@ public class PluginContentResolver extends ContentResolver {
     protected IContentProvider acquireProvider(Context context, String auth) {
         try {
             if (mPluginManager.resolveContentProvider(auth, 0) != null) {
+                // 返回的是hook过的宿主Provider, 只是作为变量存储了，并没有反射设置到ActivityThread
                 return mPluginManager.getIContentProvider();
             }
 
@@ -102,6 +106,8 @@ public class PluginContentResolver extends ContentResolver {
 
         return null;
     }
+
+    // below methods logic change
 
     public boolean releaseProvider(IContentProvider provider) {
         return true;

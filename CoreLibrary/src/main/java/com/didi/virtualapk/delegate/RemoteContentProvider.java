@@ -63,7 +63,8 @@ public class RemoteContentProvider extends ContentProvider {
 
     private ContentProvider getContentProvider(final Uri uri) {
         final PluginManager pluginManager = PluginManager.getInstance(getContext());
-        Uri pluginUri = Uri.parse(uri.getQueryParameter(KEY_URI));
+        // getQueryParameter---xxxPath/?plugin=pluginPath&pkg=pluginPkg&uri=pluginUri
+        Uri pluginUri = Uri.parse(uri.getQueryParameter(KEY_URI)); // 原始的请求uri
         final String auth = pluginUri.getAuthority();
         ContentProvider cachedProvider = sCachedProviders.get(auth);
         if (cachedProvider != null) {
@@ -87,6 +88,9 @@ public class RemoteContentProvider extends ContentProvider {
                     public void run() {
                         try {
                             LoadedPlugin loadedPlugin = pluginManager.getLoadedPlugin(uri.getQueryParameter(KEY_PKG));
+                            // ActivityThread--installProvider:
+                            // localProvider = (ContentProvider)cl.loadClass(info.name).newInstance();
+                            // localProvider.attachInfo(c, info);
                             ContentProvider contentProvider = (ContentProvider) Class.forName(providerInfo.name).newInstance();
                             contentProvider.attachInfo(loadedPlugin.getPluginContext(), providerInfo);
                             sCachedProviders.put(auth, contentProvider);
@@ -94,7 +98,7 @@ public class RemoteContentProvider extends ContentProvider {
                             e.printStackTrace();
                         }
                     }
-                }, true);
+                }, true); // 同步调用，等待UI线程执行完毕，然后再返回
                 return sCachedProviders.get(auth);
             }
         }

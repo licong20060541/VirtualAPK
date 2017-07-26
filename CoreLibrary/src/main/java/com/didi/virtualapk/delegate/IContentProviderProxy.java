@@ -36,6 +36,7 @@ import java.util.Arrays;
 import static com.didi.virtualapk.delegate.RemoteContentProvider.KEY_WRAPPER_URI;
 
 /**
+ * 动态代理了--包装插件的uri
  * Created by renyugang on 16/12/8.
  */
 
@@ -73,20 +74,20 @@ public class IContentProviderProxy implements InvocationHandler {
         if (args != null) {
             for (int i = 0; i < args.length; i++) {
                 if (args[i] instanceof Uri) {
-                    uri = (Uri) args[i];
-                    index = i;
+                    uri = (Uri) args[i]; // find first
+                    index = i; // find index value
                     break;
                 }
             }
         }
 
         Bundle bundleInCallMethod = null;
-        if (method.getName().equals("call")) {
+        if (method.getName().equals("call")) { // 自定义的请求
             bundleInCallMethod = getBundleParameter(args);
             if (bundleInCallMethod != null) {
                 String uriString = bundleInCallMethod.getString(KEY_WRAPPER_URI);
                 if (uriString != null) {
-                    uri = Uri.parse(uriString);
+                    uri = Uri.parse(uriString); // find second uri, not use index
                 }
             }
         }
@@ -100,16 +101,18 @@ public class IContentProviderProxy implements InvocationHandler {
         if (info != null) {
             String pkg = info.packageName;
             LoadedPlugin plugin = pluginManager.getLoadedPlugin(pkg);
-            String pluginUri = Uri.encode(uri.toString());
+            String pluginUri = Uri.encode(uri.toString()); // pluginUri--原始的请求uri
             StringBuilder builder = new StringBuilder(PluginContentResolver.getUri(mContext));
             builder.append("/?plugin=" + plugin.getLocation());
             builder.append("&pkg=" + pkg);
-            builder.append("&uri=" + pluginUri);
+            builder.append("&uri=" + pluginUri); // pluginUri作为一个参数存储，原理同Activity和Service
+            // 宿主可识别的uri
             Uri wrapperUri = Uri.parse(builder.toString());
             if (method.getName().equals("call")) {
+                // second
                 bundleInCallMethod.putString(KEY_WRAPPER_URI, wrapperUri.toString());
             } else {
-                args[index] = wrapperUri;
+                args[index] = wrapperUri; // first
             }
         }
     }

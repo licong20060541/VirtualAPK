@@ -58,6 +58,7 @@ public class RunUtil {
             return;
         }
 
+        // 使用CountDownLatch进行调用者的同步
         CountDownLatch countDownLatch = null;
         if (waitUtilDone) {
             countDownLatch = new CountDownLatch(1);
@@ -66,7 +67,7 @@ public class RunUtil {
         getHandler().obtainMessage(MESSAGE_RUN_ON_UITHREAD, pair).sendToTarget();
         if (waitUtilDone) {
             try {
-                countDownLatch.await();
+                countDownLatch.await(); // 调用者阻塞
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -121,7 +122,7 @@ public class RunUtil {
                 Runnable runnable = pair.first;
                 runnable.run();
                 if (pair.second != null) {
-                    pair.second.countDown();
+                    pair.second.countDown(); // 释放调用者的阻塞
                 }
             }
         }
