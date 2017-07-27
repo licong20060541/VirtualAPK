@@ -148,10 +148,10 @@ public final class LoadedPlugin {
         this.mHostContext = context;
         this.mLocation = apk.getAbsolutePath();
         this.mPackage = PackageParserCompat.parsePackage(context, apk, PackageParser.PARSE_MUST_BE_APK);
-        this.mPackage.applicationInfo.metaData = this.mPackage.mAppMetaData;
+        this.mPackage.applicationInfo.metaData = this.mPackage.mAppMetaData; // extra set
         this.mPackageInfo = new PackageInfo();
         this.mPackageInfo.applicationInfo = this.mPackage.applicationInfo;
-        this.mPackageInfo.applicationInfo.sourceDir = apk.getAbsolutePath();
+        this.mPackageInfo.applicationInfo.sourceDir = apk.getAbsolutePath(); // extra set
         this.mPackageInfo.signatures = this.mPackage.mSignatures;
         this.mPackageInfo.packageName = this.mPackage.packageName;
         if (pluginManager.getLoadedPlugin(mPackageInfo.packageName) != null) {
@@ -161,7 +161,7 @@ public final class LoadedPlugin {
         this.mPackageInfo.versionName = this.mPackage.mVersionName;
         this.mPackageInfo.permissions = new PermissionInfo[0];
         this.mPackageManager = new PluginPackageManager();
-        this.mPluginContext = new PluginContext(this);
+        this.mPluginContext = new PluginContext(this); // create mPluginContext
         this.mNativeLibDir = context.getDir(Constants.NATIVE_DIR, Context.MODE_PRIVATE);
         this.mResources = createResources(context, apk);
         this.mAssets = this.mResources.getAssets();
@@ -224,7 +224,7 @@ public final class LoadedPlugin {
 
     private void tryToCopyNativeLib(File apk) {
         Bundle metaData = this.mPackageInfo.applicationInfo.metaData;
-        if (metaData != null && metaData.getBoolean("VA_IS_HAVE_LIB")) {
+        if (metaData != null && metaData.getBoolean("VA_IS_HAVE_LIB")) { // VA_IS_HAVE_LIB
             PluginUtil.copyNativeLib(apk, mHostContext, mPackageInfo, mNativeLibDir);
         }
     }
@@ -278,6 +278,7 @@ public final class LoadedPlugin {
         RunUtil.runOnUiThread(new Runnable() {
             @Override
             public void run() {
+                // mInstrumentation has been hooked
                 mApplication = makeApplication(false, mPluginManager.getInstrumentation());
             }
         }, true);
@@ -286,6 +287,7 @@ public final class LoadedPlugin {
     public String getPackageResourcePath() {
         int myUid = Process.myUid();
         ApplicationInfo appInfo = this.mPackage.applicationInfo;
+        // two dir
         return appInfo.uid == myUid ? appInfo.sourceDir : appInfo.publicSourceDir;
     }
 
@@ -300,6 +302,7 @@ public final class LoadedPlugin {
         for (PackageParser.Activity activity : this.mPackage.activities) {
             for (PackageParser.ActivityIntentInfo intentInfo : activity.intents) {
                 if (intentInfo.match(resolver, launcher, false, TAG) > 0) {
+                    // makeMainActivity
                     return Intent.makeMainActivity(activity.getComponentName());
                 }
             }
@@ -308,6 +311,7 @@ public final class LoadedPlugin {
         return null;
     }
 
+    // CATEGORY_LEANBACK_LAUNCHER for PackageManager
     public Intent getLeanbackLaunchIntent() {
         ContentResolver resolver = this.mPluginContext.getContentResolver();
         Intent launcher = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
@@ -364,6 +368,7 @@ public final class LoadedPlugin {
         }
     }
 
+    // new Application
     private Application makeApplication(boolean forceDefaultAppClass, Instrumentation instrumentation) {
         if (null != this.mApplication) {
             return this.mApplication;

@@ -40,17 +40,23 @@ class ResourcesManager {
         Resources newResources = null;
         AssetManager assetManager;
         try {
+            // 1 add host resources
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP) {
+                // 低版本需要创建实例然后添加host路径
                 assetManager = AssetManager.class.newInstance();
                 ReflectUtil.invoke(AssetManager.class, assetManager, "addAssetPath", hostContext.getApplicationInfo().sourceDir);
             } else {
+                // 高版本直接get
                 assetManager = hostResources.getAssets();
             }
+            // 2 add plugin resources
             ReflectUtil.invoke(AssetManager.class, assetManager, "addAssetPath", apk);
+            // 3 add other plugin resources
             List<LoadedPlugin> pluginList = PluginManager.getInstance(hostContext).getAllLoadedPlugins();
             for (LoadedPlugin plugin : pluginList) {
                 ReflectUtil.invoke(AssetManager.class, assetManager, "addAssetPath", plugin.getLocation());
             }
+            // 4 handle MiUi etc.
             if (isMiUi(hostResources)) {
                 newResources = MiUiResourcesCompat.createResources(hostResources, assetManager);
             } else if (isVivo(hostResources)) {
@@ -60,7 +66,7 @@ class ResourcesManager {
             } else if (isNotRawResources(hostResources)) {
                 newResources = AdaptationResourcesCompat.createResources(hostResources, assetManager);
             } else {
-                // is raw android resources
+                // 5 is raw android resources
                 newResources = new Resources(assetManager, hostResources.getDisplayMetrics(), hostResources.getConfiguration());
             }
         } catch (Exception e) {
@@ -71,16 +77,20 @@ class ResourcesManager {
 
     }
 
+    // hook resources
     public static void hookResources(Context base, Resources resources) {
         if (Build.VERSION.SDK_INT >= 24) {
             return;
         }
 
         try {
+            // 1 Context
             ReflectUtil.setField(base.getClass(), base, "mResources", resources);
+            // 2 loadedApk
             Object loadedApk = ReflectUtil.getPackageInfo(base);
             ReflectUtil.setField(loadedApk.getClass(), loadedApk, "mResources", resources);
 
+            // 3 activityThread--mResourcesManager--mActiveResources(change first value)
             Object activityThread = ReflectUtil.getActivityThread(base);
             Object resManager = ReflectUtil.getField(activityThread.getClass(), activityThread, "mResourcesManager");
             Map<Object, WeakReference<Resources>> map = (Map<Object, WeakReference<Resources>>) ReflectUtil.getField(resManager.getClass(), resManager, "mActiveResources");

@@ -51,10 +51,12 @@ class StubActivityInfo {
             return stubActivity;
         }
 
+        // theme
         TypedArray array = theme.obtainStyledAttributes(new int[]{
                 android.R.attr.windowIsTranslucent,
                 android.R.attr.windowBackground
         });
+        // Translucent
         boolean windowIsTranslucent = array.getBoolean(0, false);
         array.recycle();
         if (Constants.DEBUG) {

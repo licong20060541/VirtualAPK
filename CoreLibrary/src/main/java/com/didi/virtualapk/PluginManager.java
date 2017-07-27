@@ -117,6 +117,7 @@ public class PluginManager {
             IActivityManager activityManagerProxy = ActivityManagerProxy.newInstance(this, defaultSingleton.get());
 
             // Hook IActivityManager from ActivityManagerNative
+            // defaultSingleton.getClass().getSuperclass()
             ReflectUtil.setField(defaultSingleton.getClass().getSuperclass(), defaultSingleton, "mInstance", activityManagerProxy);
 
             if (defaultSingleton.get() == activityManagerProxy) {
@@ -131,7 +132,7 @@ public class PluginManager {
         try {
             Instrumentation baseInstrumentation = ReflectUtil.getInstrumentation(this.mContext);
             if (baseInstrumentation.getClass().getName().contains("lbe")) {
-                // reject executing in paralell space, for example, lbe.
+                // reject executing in paralell space, for example, lbe. // ?
                 System.exit(0);
             }
 
@@ -147,7 +148,7 @@ public class PluginManager {
 
     private void hookIContentProviderAsNeeded() {
         Uri uri = Uri.parse(PluginContentResolver.getUri(mContext));
-        mContext.getContentResolver().call(uri, "wakeup", null, null);
+        mContext.getContentResolver().call(uri, "wakeup", null, null); // init
         try {
             Field authority = null;
             Field mProvider = null;
@@ -175,6 +176,7 @@ public class PluginManager {
                     }
                     IContentProvider rawProvider = (IContentProvider) mProvider.get(val);
                     IContentProvider proxy = IContentProviderProxy.newInstance(mContext, rawProvider);
+                    // 返回的是hook过的宿主Provider, 只是作为变量存储了，并没有反射设置到ActivityThread
                     mIContentProvider = proxy;
                     Log.d(TAG, "hookIContentProvider succeed : " + mIContentProvider);
                     break;

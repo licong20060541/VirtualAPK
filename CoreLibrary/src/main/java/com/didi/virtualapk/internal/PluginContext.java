@@ -26,6 +26,7 @@ import android.content.res.AssetManager;
 import android.content.res.Resources;
 
 /**
+ * PluginContext： 包装ContextWrapper，返回插件的各种信息
  * Created by renyugang on 16/8/12.
  */
 class PluginContext extends ContextWrapper {
