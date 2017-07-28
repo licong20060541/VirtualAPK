@@ -40,6 +40,7 @@ import java.util.zip.ZipFile;
  */
 
 /**
+ * !!!签名的认证
  * verify signature of zip file<br>
  * usage: boolean valid = ZipVerifyUtil.verifyZip(context, zipPath)
  */

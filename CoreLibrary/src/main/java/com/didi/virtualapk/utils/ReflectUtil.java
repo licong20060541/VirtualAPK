@@ -65,6 +65,7 @@ public class ReflectUtil {
     @SuppressWarnings("unchecked")
     public static Object invoke(Class clazz, Object target, String name, Object... args)
             throws Exception {
+        // create Class[] parameterTypes
         Class[] parameterTypes = null;
         if (args != null) {
             parameterTypes = new Class[args.length];
@@ -105,7 +106,7 @@ public class ReflectUtil {
     }
 
     @UiThread
-    public static Object getActivityThread(Context base) {
+    public static Object getActivityThread(Context base) { //
         if (sActivityThread == null) {
             try {
                 Class<?> activityThreadClazz = Class.forName("android.app.ActivityThread");

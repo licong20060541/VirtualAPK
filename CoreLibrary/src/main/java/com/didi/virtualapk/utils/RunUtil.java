@@ -50,7 +50,8 @@ public class RunUtil {
     /**
      * execute a runnable on ui thread
      * @param runnable the runnable prepared to run
-     * @param waitUtilDone if set true, the caller thread will wait until the specific runnable finished.
+     * @param waitUtilDone if set true, the caller thread will wait until the specific
+     *                     runnable finished.!!
      */
     public static void runOnUiThread(Runnable runnable, boolean waitUtilDone) {
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -78,6 +79,7 @@ public class RunUtil {
         return AsyncTask.THREAD_POOL_EXECUTOR;
     }
 
+    // getProcessNameByPid
     public static String getProcessNameByPid(Context context, int pid) {
         ActivityManager manager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> appProcessList = manager.getRunningAppProcesses();
@@ -92,6 +94,7 @@ public class RunUtil {
         return null;
     }
 
+    // isMainProcess
     public static boolean isMainProcess(Context context) {
         String processName = getProcessNameByPid(context, Process.myPid());
         if (context.getPackageName().equals(processName)) {

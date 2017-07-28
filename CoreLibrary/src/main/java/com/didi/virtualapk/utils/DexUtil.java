@@ -58,12 +58,14 @@ public class DexUtil {
     }
 
     private static Object combineArray(Object firstArray, Object secondArray) {
+        // 1 find getComponentType
         Class<?> localClass = firstArray.getClass().getComponentType();
         int firstArrayLength = Array.getLength(firstArray);
         int allLength = firstArrayLength + Array.getLength(secondArray);
-        Object result = Array.newInstance(localClass, allLength);
+        Object result = Array.newInstance(localClass, allLength); // 2 use
         for (int k = 0; k < allLength; ++k) {
             if (k < firstArrayLength) {
+                // Array.set, Array.get
                 Array.set(result, k, Array.get(firstArray, k));
             } else {
                 Array.set(result, k, Array.get(secondArray, k - firstArrayLength));
@@ -76,7 +78,7 @@ public class DexUtil {
         if (sHasInsertedNativeLibrary) {
             return;
         }
-        sHasInsertedNativeLibrary = true;
+        sHasInsertedNativeLibrary = true; // ? 只能一个LoadedPlugin调用这个了
 
         Object basePathList = getPathList(getPathClassLoader());
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.LOLLIPOP_MR1) {
